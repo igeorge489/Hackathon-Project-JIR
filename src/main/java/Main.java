@@ -1,23 +1,49 @@
 import javax.swing.*;
 import java.awt.image.BufferedImage;
+import java.util.List;
 public class Main {
-public static void main(String[] args) {
-    // 1. You must create the library object first!
-    ImageLibrary library = new ImageLibrary();
+	public static void main(String[] args) {
+	    // 1. Load everything
+	    ImageLibrary library = new ImageLibrary();
+	    library.preloadAll("src/main/resources/images");
+	    
+	    List<Level> allLevels = GameData.loadLevels("src/main/resources/_annotations.coco.json");
+	    
+	    if (allLevels.isEmpty()) {
+	        System.out.println("❌ No levels loaded. Check your JSON path!");
+	        return;
+	    }
 
-    // 2. Preload the images from your folder
-    library.preloadAll("src/main/resources/images");
+	    // 2. Start at Level 1
+	    Level currentLevel = allLevels.get(0);
+	    BufferedImage img = library.getImage(currentLevel.getImageFileName());
 
-    // 3. Get the specific image from the HashMap
-    // We store it in a variable so we can actually use it later
-    var myImage = library.getImage("0_mp4-0020_jpg.rf.f30ba41f144752a2d767a32ee396f188.jpg");
+	    // 3. Create the Window
+	    JFrame frame = new JFrame("Marine Debris Detector - Level 1");
+	    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	    
+	    JLabel displayLabel = new JLabel(new ImageIcon(img));
+	    frame.add(displayLabel);
 
-    // 4. Quick check to see if it worked
-    if (myImage != null) {
-        System.out.println("Successfully retrieved image from memory.");
-    } else {
-        System.out.println("Image not found in library.");
-    }
-}
+	    // 4. THE CLICK LOGIC
+	    displayLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+	        @Override
+	        public void mouseClicked(java.awt.event.MouseEvent e) {
+	            int x = e.getX();
+	            int y = e.getY();
+	            
+	            if (currentLevel.checkClick(x, y)) {
+	                System.out.println("✅ TARGET HIT at: " + x + "," + y);
+	                JOptionPane.showMessageDialog(frame, "Trash Detected! Great job, Eco-Guardian!");
+	                // Logic to go to next level could go here!
+	            } else {
+	                System.out.println("miss at: " + x + "," + y);
+	            }
+	        }
+	    });
+
+	    frame.pack();
+	    frame.setVisible(true);
+	}
 
 }
