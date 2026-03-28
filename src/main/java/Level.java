@@ -12,12 +12,9 @@ public class Level {
     private long startTime;
     private boolean isCleared; 
 
-    public Level(int levelNumber, String imageFileName) {
-        this.levelNumber = levelNumber;
+    public Level(String imageFileName, List<Rectangle> trashHitboxes) {
         this.imageFileName = imageFileName;
-        this.trashHitboxes = new ArrayList<>();
-        this.startTime = System.currentTimeMillis();
-        this.isCleared = false;
+        this.trashHitboxes = trashHitboxes;
     }
 
     // Add a hitbox found in the JSON
