@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.Collections;
 import java.util.List;
 
 public class Main {
@@ -18,7 +19,12 @@ public class Main {
         library.preloadAll("src/main/resources/images");
         allLevels = GameData.loadLevels("src/main/resources/_annotations.coco.json");
 
-        if (allLevels.isEmpty()) return;
+        if (!allLevels.isEmpty()) {
+            Collections.shuffle(allLevels); 
+            System.out.println("Deck shuffled! Starting with a random image.");
+        } else {
+            return;
+        }
 
         // 2. Setup UI
         frame = new JFrame("Marine Debris Guardian");
