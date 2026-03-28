@@ -119,31 +119,44 @@ public class Main {
     
     private static void showScannerFeedback(Level level) {
         BufferedImage currentImg = library.getImage(level.getImageFileName());
-        if (currentImg == null) return;
+        List<Rectangle> boxes = level.getHitboxes();
 
-        // 1. Create a "Working Copy" of the Turtle Vision image
+        if (currentImg == null) return;
+        
+        // DEBUG: Check if there are actually boxes in the list
+        System.out.println("--- Scanner Debug for: " + level.getImageFileName() + " ---");
+        System.out.println("Found " + boxes.size() + " hitboxes in JSON.");
+
+        // 1. Create the feedback image
         BufferedImage feedbackImg = applyTurtleVision(currentImg);
         Graphics2D g2d = feedbackImg.createGraphics();
 
-        // 2. Set the style for the "Scanner" boxes
-        g2d.setColor(new Color(255, 0, 0, 150)); // Semi-transparent Red
-        g2d.setStroke(new BasicStroke(3)); // Thick lines
+        // 2. High-Visibility Style
+        g2d.setColor(Color.RED); 
+        g2d.setStroke(new BasicStroke(5)); // Make it even thicker
 
-        // 3. Draw every "official" hitbox from the JSON
-        for (Rectangle rect : level.getHitboxes()) {
+        for (Rectangle rect : boxes) {
+            // DEBUG: Print the exact coordinates to see if they are huge or tiny
+            System.out.println("Drawing Red Box: x=" + rect.x + " y=" + rect.y + " w=" + rect.width + " h=" + rect.height);
+            
+            // Draw the box
             g2d.drawRect(rect.x, rect.y, rect.width, rect.height);
-            // Optional: Add a little "Target" label
-            g2d.setFont(new Font("Arial", Font.BOLD, 12));
-            g2d.drawString("DEBRIS", rect.x, rect.y - 5);
+            
+            // Add a bright yellow label so it's impossible to miss
+            g2d.setColor(Color.YELLOW);
+            g2d.drawString("DETECTED", rect.x, rect.y - 5);
+            g2d.setColor(Color.RED); // Switch back for next box
         }
+        
         g2d.dispose();
 
-        // 4. Update the screen with the boxes
+        // 3. Update the Label and FORCE it to refresh
         displayLabel.setIcon(new ImageIcon(feedbackImg));
+        displayLabel.revalidate();
+        displayLabel.repaint();
 
-        // 5. Use a Timer to hide the boxes after 1.5 seconds
-        Timer timer = new Timer(1500, e -> {
-            // Re-apply normal turtle vision (no boxes)
+        // 4. Longer Timer (3 seconds) so you have time to see them
+        Timer timer = new Timer(3000, e -> {
             displayLabel.setIcon(new ImageIcon(applyTurtleVision(currentImg)));
         });
         timer.setRepeats(false);
