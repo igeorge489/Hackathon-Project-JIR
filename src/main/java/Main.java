@@ -1,4 +1,3 @@
-import org.json.JSONObject;
 import javax.swing.*;
 import java.awt.image.BufferedImage;
 public class Main {
