@@ -21,12 +21,21 @@ public class Main {
 	    // 3. Create the Window
 	    JFrame frame = new JFrame("Marine Debris Detector - Level 1");
 	    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	    frame.setSize(800, 450);
 	    
-	    JLabel displayLabel = new JLabel(new ImageIcon(img));
-	    frame.add(displayLabel);
+	    JPanel gamePanel = new GamePanel();
+	    gamePanel.setSize(800, 450);
+	    frame.add(gamePanel);
+	    
+//	    JButton addEnergy = new JButton("Add Energy");
+//	    
+//	    addEnergy.addActionListener(this);
+	    
+	  /*  JLabel displayLabel = new JLabel(new ImageIcon(img));
+	    frame.add(displayLabel);*/
 
 	    // 4. THE CLICK LOGIC
-	    displayLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+	   /* displayLabel.addMouseListener(new java.awt.event.MouseAdapter() {
 	        @Override
 	        public void mouseClicked(java.awt.event.MouseEvent e) {
 	            int x = e.getX();
@@ -40,7 +49,7 @@ public class Main {
 	                System.out.println("miss at: " + x + "," + y);
 	            }
 	        }
-	    });
+	    });*/
 
 	    frame.pack();
 	    frame.setVisible(true);
