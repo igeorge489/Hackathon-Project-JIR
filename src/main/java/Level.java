@@ -9,8 +9,6 @@ public class Level {
 	private long startTime;  
 	
 	private boolean levelStatus;
-	
-//	private DrawingSurface window;
 
 	public Level(int currentLevel) {
 		this.currentLevel = currentLevel;
@@ -31,10 +29,11 @@ public class Level {
 		return (int)((timeFinished - startTime)/1000);
 	}
 	
+	public void setLevelStatus(boolean status) {
+		levelStatus = status;
+	}
+	
 	public boolean getLevelStatus() {
-//		if(Turtle.getX()) {
-//			
-//		}
 		return levelStatus;
 	}
 }
