@@ -4,4 +4,7 @@
  */
 public class TrashIdentifier {
 
+	public TrashIdentifier() {
+		
+	}
 }

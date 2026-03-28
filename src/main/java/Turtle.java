@@ -1,40 +1,27 @@
+import java.awt.Color;
+
 public class Turtle {
-    int age; 
-    int energy; 
-//    Image image; 
-    
-    public Turtle() {
-        age = 0; 
-        energy = 0;
-        
-    //    image = //image path; 
+    private int y = 200;
+    private int energy = 100; 
+    private Color color = new Color(34, 139, 34);
+    private final int MOVE_DISTANCE = 2; // Always 100 pixels now
+
+    public void move(int direction) {
+        // Only move if we have energy left
+        if (energy > 0) {
+            y += (direction * MOVE_DISTANCE);
+            
+            // Keep turtle on screen
+            if (y < 50) y = 50; 
+            if (y > 400) y = 400;
+
+            // Reduce energy per move
+            energy = Math.max(0, energy - 10); 
+        }
     }
-    
-    public void setAge(int age) {
-        this.age = age;
-    }
-    
-    /*public void setImage(Image imgPath) {
-        image = imgPath; 
-    }*/
-    
-    public void addEnergy(int increase) {
-        energy += increase;
-    }
-    
-    public void removeEnergy(int decrease) {
-        energy -= decrease; 
-    }
-    
-    public int getAge() {
-        return age;
-    }
-    
-/*    public Image getImage() {
-        return image;
-    }*/
-    
-    public int getEnergy() {
-        return energy; 
-    }
+
+    public int getY() { return y; }
+    public int getEnergy() { return energy; }
+    public Color getColor() { return color; }
+    public void setColor(Color c) { this.color = c; }
 }

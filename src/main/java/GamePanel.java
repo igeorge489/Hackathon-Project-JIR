@@ -5,92 +5,135 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class GamePanel extends JPanel implements ActionListener {
-    // Settings
-    private final int FPS = 60;
     private final int SCROLL_SPEED = 5;
-    private final int TURTLE_X = 100; // Stationary X position
+    private final int TURTLE_X = 100;
     
-    // Game State
     private int worldX = 0;
-    private int turtleY = 200;
+    private Turtle turtle; // Our Turtle Object
+    private boolean isGameOver = false;
+    
     private Timer timer;
-    private ArrayList<Rectangle> obstacles;
+    private ArrayList<Rectangle> trashList;
     private Random random = new Random();
 
     public GamePanel() {
-        this.setBackground(new Color(30, 144, 255)); // Deep Sky Blue (Ocean)
-        this.obstacles = new ArrayList<>();
-        
-        // Create some initial testing obstacles
-        for (int i = 0; i < 10; i++) {
-            spawnObstacle(500 + (i * 300));
-        }
+        this.setLayout(null);
+        this.setBackground(new Color(20, 100, 180));
+        this.turtle = new Turtle();
+        this.trashList = new ArrayList<>();
 
-        // Handle Movement
-        setFocusable(true);
-        addKeyListener(new KeyAdapter() {
+        // Color Change Button
+        JButton colorBtn = new JButton("Change Color");
+        colorBtn.setBounds(10, 40, 120, 25);
+        colorBtn.setFocusable(false);
+        colorBtn.addActionListener(e -> {
+            turtle.setColor(new Color(random.nextInt(256), random.nextInt(256), random.nextInt(256)));
+        });
+        this.add(colorBtn);
+
+        // Initial Trash
+        for (int i = 0; i < 5; i++) spawnTrash(600 + (i * 400));
+
+        this.setFocusable(true);
+        this.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_UP) turtleY -= 15;
-                if (e.getKeyCode() == KeyEvent.VK_DOWN) turtleY += 15;
+                if (isGameOver) return;
+                if (e.getKeyCode() == KeyEvent.VK_UP) turtle.move(-20);
+                if (e.getKeyCode() == KeyEvent.VK_DOWN) turtle.move(20);
             }
         });
 
-        // Start Game Loop
-        timer = new Timer(1000 / FPS, this);
+        timer = new Timer(1000 / 60, this);
         timer.start();
     }
 
-    private void spawnObstacle(int x) {
-        int y = random.nextInt(350);
-        obstacles.add(new Rectangle(x, y, 40, 40));
+    private void spawnTrash(int x) {
+        trashList.add(new Rectangle(x, random.nextInt(300) + 70, 30, 50));
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        // 1. Move the "World" (Camera)
-        worldX += SCROLL_SPEED;
-
-        // 2. Logic: If an obstacle goes off screen, wrap it around for testing
-        for (Rectangle rect : obstacles) {
-            if (rect.x - worldX < -50) {
-                rect.x = worldX + 800; // Reposition far to the right
-                rect.y = random.nextInt(350);
-            }
+        // Stop the game if energy reaches 0
+        if (turtle.getEnergy() <= 0) {
+            isGameOver = true;
+            timer.stop();
         }
 
+        if (!isGameOver) {
+            worldX += SCROLL_SPEED;
+            checkCollisions();
+            
+            // Trash recycling logic
+            for (Rectangle t : trashList) {
+                // If the trash is off-screen to the left
+                if (t.x - worldX < -100) { 
+                    // Move it to the right of the CURRENT camera position
+                    t.x = worldX + getWidth() + random.nextInt(300); 
+                    t.y = random.nextInt(getHeight() - 100) + 50;
+                }
+            }
+        }
         repaint();
+    }
+
+    // Key listener remains the same, but now calls turtle.move() 
+    // which handles the slowing logic internally.
+
+    private void checkCollisions() {
+        Rectangle turtleRect = new Rectangle(TURTLE_X, turtle.getY(), 50, 30);
+        for (Rectangle t : trashList) {
+            if (turtleRect.intersects(new Rectangle(t.x - worldX, t.y, t.width, t.height))) {
+                isGameOver = true;
+                timer.stop();
+            }
+        }
     }
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+        super.paintComponent(g); // 1. Clear screen (Draws Background Color)
         Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // --- LAYER 1: MOVING BACKGROUND (Simple Grid/Bubbles) ---
-        g2d.setColor(new Color(255, 255, 255, 50));
-        int tileSize = 100;
-        int offsetX = -(worldX % tileSize);
-        for (int x = offsetX; x < getWidth(); x += tileSize) {
-            g2d.drawLine(x, 0, x, getHeight());
-        }
-
-        // --- LAYER 2: OBSTACLES (Trash) ---
-        g2d.setColor(Color.GRAY);
-        for (Rectangle rect : obstacles) {
-            // RELATIVE DRAWING: Subtract worldX from the object's map position
-            int screenX = rect.x - worldX; 
-            g2d.fillRect(screenX, rect.y, rect.width, rect.height);
-        }
-
-        // --- LAYER 3: STATIONARY TURTLE ---
-        g2d.setColor(new Color(34, 139, 34)); // Forest Green
-        g2d.fillOval(TURTLE_X, turtleY, 50, 30); // Body
-        g2d.fillOval(TURTLE_X + 40, turtleY + 5, 20, 20); // Head
         
-        // UI Overlay
+        // 2. Draw Trash FIRST (so it's behind the UI)
+        g2d.setColor(new Color(200, 200, 255, 150));
+        for (Rectangle t : trashList) {
+            // This math is vital: Map Position - Camera Position
+            int screenX = t.x - worldX; 
+            g2d.fillRect(screenX, t.y, t.width, t.height);
+        }
+
+        // 3. Draw Turtle
+        g2d.setColor(turtle.getColor());
+        g2d.fillOval(TURTLE_X, turtle.getY(), 50, 30);
+
+        // 4. Draw UI / Energy Bar LAST (so it's on top of everything)
+        drawEnergyBar(g2d);
+    }
+
+    private void drawEnergyBar(Graphics2D g2d) {
+        int x = 10, y = 10, w = 200, h = 20;
+        int currentEnergy = turtle.getEnergy();
+
+        // Background
+        g2d.setColor(Color.BLACK);
+        g2d.fillRect(x, y, w, h);
+
+        // Change color based on fatigue
+        if (currentEnergy > 50) g2d.setColor(Color.GREEN);
+        else if (currentEnergy > 20) g2d.setColor(Color.ORANGE);
+        else g2d.setColor(Color.RED);
+
+        // Draw the actual bar
+        int fillWidth = (int) (w * (currentEnergy / 100.0));
+        g2d.fillRect(x, y, fillWidth, h);
+
+        // Outline
         g2d.setColor(Color.WHITE);
-        g2d.drawString("Distance: " + (worldX / 10) + "m", 20, 30);
+        g2d.drawRect(x, y, w, h);
+        
+        if (currentEnergy == 0) {
+            g2d.drawString("EXHAUSTED - CAN'T MOVE!", x, y + 40);
+        }
     }
 }
