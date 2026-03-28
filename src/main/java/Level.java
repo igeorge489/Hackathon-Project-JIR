@@ -10,7 +10,7 @@ public class Level {
     private String imageFileName;
     private List<Rectangle> trashHitboxes; // Stores where the trash is
     private long startTime;
-    private boolean isCleared;
+    private boolean isCleared; 
 
     public Level(int levelNumber, String imageFileName) {
         this.levelNumber = levelNumber;
@@ -33,6 +33,10 @@ public class Level {
             }
         }
         return false;
+    }
+    
+    public List<Rectangle> getHitboxes() {
+        return trashHitboxes;
     }
 
     public String getImageFileName() { return imageFileName; }
