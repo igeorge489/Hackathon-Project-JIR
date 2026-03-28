@@ -3,6 +3,11 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import javax.imageio.ImageIO;
+
+/**
+ * represents the image library
+ * @author Irene George
+ */
 public class ImageLibrary {
     // This is our "Filing Cabinet"
     private Map<String, BufferedImage> images = new HashMap<>();
