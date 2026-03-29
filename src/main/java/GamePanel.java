@@ -1,3 +1,4 @@
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -7,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class GamePanel extends JPanel implements ActionListener {
-    // --- Swimming Logic Variables ---
     private final int SCROLL_SPEED = 5;
     private final int TURTLE_X = 100;
     private int worldX = 0;
@@ -16,27 +16,27 @@ public class GamePanel extends JPanel implements ActionListener {
     private Timer timer;
     private ArrayList<Rectangle> trashList;
     private Random random = new Random();
-
-    // --- Minigame & State Variables ---
+    
+    private Rectangle fish; 
+    private int fishSpawnTimer = 0;
     private boolean isMinigameActive = false;
     private BufferedImage minigameImg;
-    private Level currentLevel;
+    private Level currentLevel; 
     private boolean showScanner = false;
     
-    // --- UI Components ---
     private JButton startBtn;
     private JButton restartBtn;
 
     public GamePanel() {
-        this.setLayout(null); // Allows absolute positioning for buttons
+        this.setLayout(null);
         this.setBackground(new Color(20, 100, 180));
         this.turtle = new Turtle();
         this.trashList = new ArrayList<>();
+        // Default level to prevent null pointer before first load
+        this.currentLevel = new Level("ocean.png", new ArrayList<>());
 
-        // Spawn initial obstacles
         for (int i = 0; i < 5; i++) spawnTrash(600 + (i * 400));
 
-        // Start Button (Intro Screen)
         startBtn = new JButton("START MISSION");
         startBtn.setBounds(300, 350, 200, 50);
         startBtn.setFocusable(false);
@@ -47,7 +47,6 @@ public class GamePanel extends JPanel implements ActionListener {
         });
         this.add(startBtn);
 
-        // Restart Button (Game Over Screen)
         restartBtn = new JButton("RETRY");
         restartBtn.setBounds(325, 300, 150, 40);
         restartBtn.setFocusable(false);
@@ -59,10 +58,9 @@ public class GamePanel extends JPanel implements ActionListener {
         this.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                // Block movement if menu is open, game is over, or scanning
                 if (isGameOver || isMinigameActive || Main.currentState == Main.GameState.START_MENU) return;
-                if (e.getKeyCode() == KeyEvent.VK_UP) turtle.move(-20);
-                if (e.getKeyCode() == KeyEvent.VK_DOWN) turtle.move(20);
+                if (e.getKeyCode() == KeyEvent.VK_UP) turtle.move(-25);
+                if (e.getKeyCode() == KeyEvent.VK_DOWN) turtle.move(25);
             }
         });
 
@@ -70,88 +68,80 @@ public class GamePanel extends JPanel implements ActionListener {
         timer.start();
     }
 
-    // --- Interaction Methods ---
-
-    public void enterMinigame(BufferedImage img, Level level) {
+    public void enterMinigame(BufferedImage img, Level minigameData) {
         this.isMinigameActive = true;
         this.minigameImg = img;
-        this.currentLevel = level;
+        this.currentLevel.updateHitboxes(minigameData.getHitboxes());
         this.showScanner = false;
     }
 
-    public void exitMinigame() {
-        this.isMinigameActive = false;
+    public void exitMinigame() { 
+        this.isMinigameActive = false; 
+        this.requestFocusInWindow();
     }
 
-    public void rechargeTurtle(int amount) {
-        turtle.addEnergy(amount);
-    }
+    public void rechargeTurtle(int amount) { turtle.addEnergy(amount); }
+    
+    public int getTurtleEnergy() { return turtle.getEnergy(); }
 
-    public int getTurtleEnergy() {
-        return turtle.getEnergy();
+    private void spawnFish() {
+        fish = new Rectangle(worldX + 800, random.nextInt(300) + 100, 30, 20);
     }
-
-    public void triggerScanner() {
-        showScanner = true;
-        repaint();
-        Timer t = new Timer(2000, e -> {
-            showScanner = false;
-            repaint();
-        });
-        t.setRepeats(false);
-        t.start();
-    }
-
-    // --- Core Game Loop ---
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (Main.currentState == Main.GameState.EXPLORING && !isGameOver && !isMinigameActive) {
-            worldX += SCROLL_SPEED;
-            checkCollisions();
-            
-            // Loop obstacles
-            for (Rectangle t : trashList) {
-                if (t.x - worldX < -100) { 
-                    t.x = worldX + getWidth() + random.nextInt(300); 
-                    t.y = random.nextInt(getHeight() - 150) + 50;
-                }
+        if (Main.currentState != Main.GameState.EXPLORING || isGameOver || isMinigameActive) {
+            // Auto-trigger minigame if energy hits zero during exploration
+            if (turtle.getEnergy() <= 0 && !isMinigameActive && !isGameOver && Main.currentState != Main.GameState.START_MENU) {
+                Main.startMinigame();
             }
-
-            if (turtle.getEnergy() <= 0) triggerGameOver();
+            repaint();
+            return;
         }
+
+        worldX += SCROLL_SPEED;
+        fishSpawnTimer++; 
+        if (fish == null && fishSpawnTimer > 300) { spawnFish(); fishSpawnTimer = 0; }
+        if (fish != null && (fish.x - worldX) < -100) fish = null; 
+        
+        checkCollisions();
+
+        // Recycle trash objects to create infinite loop
+        for (Rectangle t : trashList) {
+            if (t.x - worldX < -100) {
+                int gap = Math.max(100, 400 - (currentLevel.getLevelNumber() * 30));
+                t.x = worldX + getWidth() + random.nextInt(gap);
+                t.y = random.nextInt(getHeight() - 100) + 50;
+            }
+        }
+
+        if (turtle.getEnergy() <= 0) triggerGameOver();
         repaint();
     }
 
     private void checkCollisions() {
-        Rectangle tRect = new Rectangle(TURTLE_X, turtle.getY(), 50, 30);
+        Rectangle turtleRect = new Rectangle(TURTLE_X, turtle.getY(), 50, 30);
         for (Rectangle t : trashList) {
-            if (tRect.intersects(new Rectangle(t.x - worldX, t.y, t.width, t.height))) {
-                triggerGameOver();
+            if (turtleRect.intersects(new Rectangle(t.x - worldX, t.y, t.width, t.height))) triggerGameOver();
+        }
+        if (fish != null) {
+            if (turtleRect.intersects(new Rectangle(fish.x - worldX, fish.y, fish.width, fish.height))) {
+                currentLevel.incrementLevel();
+                fish = null;                   
             }
         }
     }
 
-    private void triggerGameOver() {
-        isGameOver = true;
-        restartBtn.setVisible(true);
-    }
+    public void triggerGameOver() { isGameOver = true; restartBtn.setVisible(true); }
 
     private void restartGame() {
-        isGameOver = false;
-        worldX = 0;
-        turtle.reset(); 
-        restartBtn.setVisible(false);
-        trashList.clear();
+        isGameOver = false; worldX = 0; turtle.reset(); 
+        restartBtn.setVisible(false); trashList.clear();
         for (int i = 0; i < 5; i++) spawnTrash(600 + (i * 400));
         this.requestFocusInWindow();
     }
 
-    private void spawnTrash(int x) {
-        trashList.add(new Rectangle(x, random.nextInt(300) + 70, 30, 50));
-    }
-
-    // --- Graphics Rendering ---
+    private void spawnTrash(int x) { trashList.add(new Rectangle(x, random.nextInt(300) + 70, 30, 50)); }
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -161,19 +151,11 @@ public class GamePanel extends JPanel implements ActionListener {
         if (Main.currentState == Main.GameState.START_MENU) {
             drawIntro(g2d);
         } else {
-            // Main Game Drawing
-            if (isMinigameActive) {
-                drawMinigame(g2d);
-            } else {
-                drawSwimming(g2d);
-            }
-
-            // UI Layer (Drawn last so it's always on top)
+            if (isMinigameActive) drawMinigame(g2d);
+            else drawSwimming(g2d);
+            
             drawEnergyBar(g2d);
-
-            if (isGameOver) {
-                drawGameOver(g2d);
-            }
+            if (isGameOver) drawGameOver(g2d);
         }
     }
 
@@ -182,17 +164,19 @@ public class GamePanel extends JPanel implements ActionListener {
         g2d.fillRect(0, 0, getWidth(), getHeight());
         g2d.setColor(Color.WHITE);
         g2d.setFont(new Font("Arial", Font.BOLD, 36));
-        g2d.drawString("DEEP SEA SEARCH", 230, 150);
-        g2d.setFont(new Font("Arial", Font.PLAIN, 18));
-        g2d.drawString("Protect the turtle. Use Arrows to swim.", 240, 200);
-        g2d.drawString("Find hidden trash to gain energy!", 260, 230);
+        g2d.drawString("DEEP SEA SEARCH", 220, 150);
     }
 
     private void drawSwimming(Graphics2D g2d) {
-        g2d.setColor(new Color(200, 200, 255, 100)); // Obstacles
+        g2d.setColor(new Color(200, 200, 255, 150));
         for (Rectangle t : trashList) g2d.fillRect(t.x - worldX, t.y, t.width, t.height);
         
-        g2d.setColor(turtle.getColor()); // Turtle
+        if (fish != null) {
+            g2d.setColor(Color.ORANGE);
+            g2d.fillOval(fish.x - worldX, fish.y, fish.width, fish.height);
+        }
+        
+        g2d.setColor(turtle.getColor());
         g2d.fillOval(TURTLE_X, turtle.getY(), 50, 30);
     }
 
@@ -200,42 +184,49 @@ public class GamePanel extends JPanel implements ActionListener {
         if (minigameImg == null) return;
         g2d.drawImage(applyTurtleVision(minigameImg), 0, 0, getWidth(), getHeight(), null);
         
-        if (showScanner && currentLevel != null) {
+        if (showScanner) {
             double sx = (double) getWidth() / minigameImg.getWidth();
             double sy = (double) getHeight() / minigameImg.getHeight();
-            g2d.setColor(Color.RED);
             g2d.setStroke(new BasicStroke(3));
+            g2d.setColor(Color.RED);
             for (Rectangle r : currentLevel.getHitboxes()) {
-                g2d.drawRect((int)(r.x * sx), (int)(r.y * sy), (int)(r.width * sx), (int)(r.height * sy));
+                g2d.drawRect((int)(r.x*sx), (int)(r.y*sy), (int)(r.width*sx), (int)(r.height*sy));
             }
         }
     }
 
     private void drawEnergyBar(Graphics2D g2d) {
-        int x = 20, y = 50, w = 200, h = 20; 
+        int energy = turtle.getEnergy();
         g2d.setColor(Color.BLACK);
-        g2d.fillRect(x, y, w, h);
-        
-        // Color changes to Red if energy is low
-        g2d.setColor(turtle.getEnergy() < 25 ? Color.RED : Color.GREEN);
-        int fillWidth = (int) (w * (turtle.getEnergy() / 100.0));
-        g2d.fillRect(x, y, fillWidth, h);
-        
+        g2d.fillRect(20, 20, 200, 20);
+        g2d.setColor(energy > 50 ? Color.GREEN : (energy > 20 ? Color.ORANGE : Color.RED));
+        g2d.fillRect(20, 20, (int)(200 * (energy/100.0)), 20);
         g2d.setColor(Color.WHITE);
-        g2d.drawRect(x, y, w, h);
+        g2d.drawRect(20, 20, 200, 20);
+        g2d.drawString("Level: " + currentLevel.getLevelNumber(), 20, 60);
     }
 
     private void drawGameOver(Graphics2D g2d) {
         g2d.setColor(new Color(0, 0, 0, 180));
         g2d.fillRect(0, 0, getWidth(), getHeight());
         g2d.setColor(Color.RED);
-        g2d.setFont(new Font("Arial", Font.BOLD, 50));
-        g2d.drawString("GAME OVER", 250, 250);
+        g2d.setFont(new Font("Arial", Font.BOLD, 48));
+        g2d.drawString("GAME OVER", 260, 250);
     }
 
     private BufferedImage applyTurtleVision(BufferedImage src) {
-        float[] factors = {0.2f, 0.8f, 1.1f, 1.0f}; // Cyan/Underwater tint
-        RescaleOp op = new RescaleOp(factors, new float[4], null);
-        return op.filter(src, null);
+        int num = src.getColorModel().getNumComponents();
+        float[] factors = new float[num];
+        factors[0] = 0.2f; factors[1] = 0.9f; factors[2] = 1.1f;
+        if (num == 4) factors[3] = 1.0f;
+        RescaleOp op = new RescaleOp(factors, new float[num], null);
+        BufferedImage dest = new BufferedImage(src.getWidth(), src.getHeight(), src.getType());
+        return op.filter(src, dest);
+    }
+
+    public void triggerScanner() {
+        showScanner = true; 
+        repaint();
+        new Timer(2000, e -> { showScanner = false; repaint(); }).start();
     }
 }
