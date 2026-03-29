@@ -12,8 +12,7 @@ public class GamePanel extends JPanel implements ActionListener {
     private final int SCROLL_SPEED = 5;
     private final int TURTLE_X = 100;
     private int worldX = 0;
-    private Turtle turtle; 
-    private boolean isGameOver = false;
+    private Turtle turtle;
     private Timer timer;
     private ArrayList<Rectangle> trashList;
     private Random random = new Random();
@@ -23,12 +22,20 @@ public class GamePanel extends JPanel implements ActionListener {
     private BufferedImage minigameImg;
     private Level currentLevel;
     private boolean showScanner = false;
+    private boolean isGameOver = false;
+    private JButton restartBtn;
 
     public GamePanel() {
         this.setLayout(null);
         this.setBackground(new Color(20, 100, 180));
         this.turtle = new Turtle();
         this.trashList = new ArrayList<>();
+        restartBtn = new JButton("Try Again?");
+        restartBtn.setBounds(325, 300, 150, 40);
+        restartBtn.setFocusable(false);
+        restartBtn.setVisible(false);
+        restartBtn.addActionListener(e -> restartGame());
+        this.add(restartBtn);
 
         // Initial Trash Obstacles for the swimming portion
         for (int i = 0; i < 5; i++) spawnTrash(600 + (i * 400));
@@ -90,10 +97,13 @@ public class GamePanel extends JPanel implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         // Only run swimming logic if minigame is NOT active
-        if (!isGameOver && !isMinigameActive) {
+        if (isGameOver) return;
+    	if (!isGameOver && !isMinigameActive) {
             worldX += SCROLL_SPEED;
             checkCollisions();
-            
+        if (turtle.getEnergy() <= 0) {
+        	triggerGameOver();
+        }
             // Loop obstacles
             for (Rectangle t : trashList) {
                 if (t.x - worldX < -100) { 
@@ -114,9 +124,8 @@ public class GamePanel extends JPanel implements ActionListener {
         Rectangle turtleRect = new Rectangle(TURTLE_X, turtle.getY(), 50, 30);
         for (Rectangle t : trashList) {
             if (turtleRect.intersects(new Rectangle(t.x - worldX, t.y, t.width, t.height))) {
-                isGameOver = true;
-                timer.stop();
-                JOptionPane.showMessageDialog(this, "The turtle hit trash! Game Over.");
+                triggerGameOver();
+        
             }
         }
     }
@@ -124,18 +133,54 @@ public class GamePanel extends JPanel implements ActionListener {
     private void spawnTrash(int x) {
         trashList.add(new Rectangle(x, random.nextInt(300) + 70, 30, 50));
     }
-
+    
+    private void triggerGameOver() {
+    	isGameOver = true;
+    	timer.stop();
+    	restartBtn.setVisible(true);
+    	repaint();
+    }
+    
+    private void restartGame() {
+        isGameOver = false;
+        worldX = 0;
+        turtle.resetEnergy(); // You'll need this in Turtle.java
+        turtle.setY(250);     // Reset position
+        
+        // Clear and respawn trash
+        trashList.clear();
+        for (int i = 0; i < 5; i++) spawnTrash(600 + (i * 400));
+        
+        restartBtn.setVisible(false);
+        timer.start();
+        repaint();
+    }
     // --- Drawing Logic ---
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g); 
+        super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
-        
+
         if (isMinigameActive) {
             drawMinigame(g2d);
         } else {
             drawSwimmingScene(g2d);
+        }
+
+        // DRAW GAME OVER OVERLAY ON TOP
+        if (isGameOver) {
+            // Darken the screen
+            g2d.setColor(new Color(0, 0, 0, 150));
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+
+            // Draw Text
+            g2d.setColor(Color.WHITE);
+            g2d.setFont(new Font("Arial", Font.BOLD, 50));
+            g2d.drawString("GAME OVER", 250, 200);
+            
+            g2d.setFont(new Font("Arial", Font.PLAIN, 20));
+            g2d.drawString("Oh no, the poor turtle!", 325, 250);
         }
     }
 

@@ -21,6 +21,7 @@ public class Turtle {
     }
 
     public int getY() { return y; }
+    public void setY(int y) {this.y = y;}
     public int getEnergy() { return energy; }
     public Color getColor() { return color; }
     public void setColor(Color c) { this.color = c; }
