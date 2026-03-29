@@ -1,4 +1,4 @@
-
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -34,7 +34,7 @@ public class GamePanel extends JPanel implements ActionListener {
         this.trashList = new ArrayList<>();
         // Default level to prevent null pointer before first load
         this.currentLevel = new Level("ocean.png", new ArrayList<>());
-
+        
         for (int i = 0; i < 5; i++) spawnTrash(600 + (i * 400));
 
         startBtn = new JButton("START MISSION");
@@ -190,7 +190,7 @@ public class GamePanel extends JPanel implements ActionListener {
             g2d.setStroke(new BasicStroke(3));
             g2d.setColor(Color.RED);
             for (Rectangle r : currentLevel.getHitboxes()) {
-                g2d.drawRect((int)(r.x*sx), (int)(r.y*sy), (int)(r.width*sx), (int)(r.height*sy));
+            	g2d.drawRect((int)(r.x*sx), (int)(r.y*sy), (int)(r.width*sx), (int)(r.height*sy));
             }
         }
     }
