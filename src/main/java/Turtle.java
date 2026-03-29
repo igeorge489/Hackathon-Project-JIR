@@ -32,4 +32,8 @@ public class Turtle {
     		this.energy = 100; 
     	}
     }
+    public void reset() {
+    	this.y = 250;
+    	this.energy = 100;
+    }
 }
