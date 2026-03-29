@@ -118,10 +118,25 @@ public class GamePanel extends JPanel implements ActionListener {
         	
             checkCollisions();
             
-            for (Rectangle t : trashList) {
-                if (t.x - worldX < -100) { 
-                    t.x = worldX + getWidth() + random.nextInt(300); 
+//            for (Rectangle t : trashList) {
+//                if (t.x - worldX < -100) { 
+//                    t.x = worldX + getWidth() + random.nextInt(300); 
+//                    t.y = random.nextInt(getHeight() - 100) + 50;
+//                }
+//            }
+            for (int i = 0; i < trashList.size(); i++) {
+                Rectangle t = trashList.get(i);
+                if (t.x - worldX < -100) {
+                    // As level increases, trash spawns closer to the turtle (more frequent)
+                    int difficultyGap = Math.max(100, 400 - (currentLevel.getLevelNumber() * 30));
+                    
+                    t.x = worldX + getWidth() + random.nextInt(difficultyGap);
                     t.y = random.nextInt(getHeight() - 100) + 50;
+
+                    // EXTRA CHALLENGE: If level is high, occasionally spawn a second piece of trash
+                    if (currentLevel.getLevelNumber() > 3 && random.nextInt(10) < 2) {
+                         spawnTrash(t.x + 50); 
+                    }
                 }
             }
         }
