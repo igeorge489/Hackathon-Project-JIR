@@ -17,6 +17,10 @@ public class Level {
         this.trashHitboxes = trashHitboxes;
     }
     
+    public void updateHitboxes(List<Rectangle> newHitboxes) {
+        this.trashHitboxes = newHitboxes;
+    }
+    
     public void incrementLevel() {
         this.levelNumber++;
         System.out.println("Level Up! Now at: " + levelNumber);
