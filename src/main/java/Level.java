@@ -16,10 +16,13 @@ public class Level {
         this.imageFileName = imageFileName;
         this.trashHitboxes = trashHitboxes;
     }
+    
+    public void incrementLevel() {
         this.levelNumber++;
         System.out.println("Level Up! Now at: " + levelNumber);
     }
 
+    public int getLevelNumber() {
         return levelNumber;
     }
     
