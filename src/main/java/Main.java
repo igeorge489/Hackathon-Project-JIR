@@ -40,6 +40,21 @@ public class Main {
         frame.add(scoreLabel, BorderLayout.NORTH);
         frame.add(gamePanel, BorderLayout.CENTER);
 
+        JButton cleanOceanBtn = new JButton("Gain energy");
+        cleanOceanBtn.setFocusable(false); // Important so it doesn't steal keyboard focus from the turtle
+
+        cleanOceanBtn.addActionListener(e -> {
+            // Only allow starting the minigame if we aren't already in it
+            if (currentState == GameState.EXPLORING) {
+                startMinigame();
+            }
+        });
+        
+        JPanel statsPanel = new JPanel();
+        statsPanel.add(scoreLabel);
+        statsPanel.add(cleanOceanBtn); // Add the button next to the score
+        frame.add(statsPanel, BorderLayout.NORTH);
+        
         // Click Logic: Only active during MINIGAME state
         gamePanel.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -76,6 +91,8 @@ public class Main {
         
         if (current.checkClick(x, y)) {
             score += 100;
+            
+            gamePanel.rechargeTurtle(30);
             scoreLabel.setText("Score: " + score + " | Energy: 100");
             JOptionPane.showMessageDialog(frame, "Trash Collected! Turtle Recharged.");
             

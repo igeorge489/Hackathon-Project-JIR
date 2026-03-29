@@ -25,4 +25,10 @@ public class Turtle {
     public Color getColor() { return color; }
     public void setColor(Color c) { this.color = c; }
     public void resetEnergy() {this.energy = 100; }
+    public void addEnergy(int amount) {
+    	this.energy += amount;
+    	if (this.energy > 100) {
+    		this.energy = 100; 
+    	}
+    }
 }

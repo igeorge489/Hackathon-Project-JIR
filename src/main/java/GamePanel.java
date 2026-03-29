@@ -170,4 +170,13 @@ public class GamePanel extends JPanel implements ActionListener {
         g2d.setColor(Color.WHITE);
         g2d.drawRect(x, y, w, h);
     }
+    
+    public void rechargeTurtle(int amount) {
+    	turtle.addEnergy(amount);
+    }
+    
+    public int getTurtleEnergy() {
+    	return turtle.getEnergy();
+    }
+   
 }
