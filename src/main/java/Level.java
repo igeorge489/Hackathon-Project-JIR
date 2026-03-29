@@ -16,12 +16,18 @@ public class Level {
         this.imageFileName = imageFileName;
         this.trashHitboxes = trashHitboxes;
     }
+        this.levelNumber++;
+        System.out.println("Level Up! Now at: " + levelNumber);
+    }
 
+        return levelNumber;
+    }
+    
     // Add a hitbox found in the JSON
     public void addHitbox(int x, int y, int width, int height) {
         trashHitboxes.add(new Rectangle(x, y, width, height));
     }
-
+    
     // Check if the user clicked on trash
     public boolean checkClick(int clickX, int clickY) {
         for (Rectangle box : trashHitboxes) {
