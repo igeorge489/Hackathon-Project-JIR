@@ -1,28 +1,30 @@
 import java.awt.Color;
 
 public class Turtle {
-    private int y = 200;
-    private int energy = 100; 
-    private Color color = new Color(34, 139, 34);
-    private final int MOVE_DISTANCE = 2; // Always 100 pixels now
+    private int y = 250;
+    private int energy = 100;
+    private Color color = new Color(34, 139, 34); // Forest Green
 
-    public void move(int direction) {
-        // Only move if we have energy left
-        if (energy > 0) {
-            y += (direction * MOVE_DISTANCE);
-            
-            // Keep turtle on screen
-            if (y < 50) y = 50; 
-            if (y > 400) y = 400;
+    public void move(int amount) {
+        y += amount;
+        if (y < 0) y = 0;
+        if (y > 450) y = 450;
+        
+        energy -= 1; 
+        if (energy < 0) energy = 0;
+    }
 
-            // Reduce energy per move
-            energy = Math.max(0, energy - 10); 
-        }
+    public void reset() {
+        this.y = 250;
+        this.energy = 100;
+    }
+
+    public void addEnergy(int amount) {
+        this.energy += amount;
+        if (this.energy > 100) this.energy = 100;
     }
 
     public int getY() { return y; }
     public int getEnergy() { return energy; }
     public Color getColor() { return color; }
-    public void setColor(Color c) { this.color = c; }
-    public void resetEnergy() {this.energy = 100; }
 }

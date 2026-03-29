@@ -5,8 +5,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class Main {
-    public enum GameState { EXPLORING, MINIGAME }
-    public static GameState currentState = GameState.EXPLORING;
+    public enum GameState { START_MENU, EXPLORING, MINIGAME }
+    public static GameState currentState = GameState.START_MENU;
 
     private static List<Level> allLevels;
     private static int currentIndex = 0;
@@ -20,12 +20,12 @@ public class Main {
 
     public static void main(String[] args) {
         library = new ImageLibrary();
-        // Adjust these paths if your project folder structure is different!
+        // Adjust these paths to your project structure
         library.preloadAll("src/main/resources/images");
         allLevels = GameData.loadLevels("src/main/resources/_annotations.coco.json");
 
-        if (allLevels.isEmpty()) {
-            System.out.println("No levels found!");
+        if (allLevels == null || allLevels.isEmpty()) {
+            System.out.println("No levels found! Check your JSON path and image folder.");
             return;
         }
         Collections.shuffle(allLevels);
@@ -34,13 +34,26 @@ public class Main {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
 
+        gamePanel = new GamePanel();
+        
+        // Stats Panel (Top UI)
+        JPanel statsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         scoreLabel = new JLabel("Score: 0 | Energy: 100");
-        gamePanel = new GamePanel(); 
+        scoreLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        
+        JButton cleanOceanBtn = new JButton("Gain Energy");
+        cleanOceanBtn.setFocusable(false);
+        cleanOceanBtn.addActionListener(e -> {
+            if (currentState == GameState.EXPLORING) startMinigame();
+        });
 
-        frame.add(scoreLabel, BorderLayout.NORTH);
+        statsPanel.add(scoreLabel);
+        statsPanel.add(cleanOceanBtn);
+
+        frame.add(statsPanel, BorderLayout.NORTH);
         frame.add(gamePanel, BorderLayout.CENTER);
 
-        // Click Logic: Only active during MINIGAME state
+        // Click Detection for Minigame
         gamePanel.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
@@ -50,14 +63,13 @@ public class Main {
             }
         });
 
-        frame.setSize(800, 500);
+        frame.setSize(800, 600);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
-    // This is called by GamePanel when energy hits 0
     public static void startMinigame() {
-        if (allLevels.isEmpty()) return;
+        if (allLevels == null || allLevels.isEmpty()) return;
         
         currentState = GameState.MINIGAME;
         missCount = 0;
@@ -65,31 +77,37 @@ public class Main {
         Level current = allLevels.get(currentIndex);
         BufferedImage img = library.getImage(current.getImageFileName());
         
-        // Match the method name in your GamePanel
-        gamePanel.enterMinigame(img, current);
-        
-        frame.setTitle("SCANNER ACTIVE: Find the Debris!");
+        if (img != null) {
+            gamePanel.enterMinigame(img, current);
+        } else {
+            System.out.println("Could not load image: " + current.getImageFileName());
+            // Skip to next level if image is missing
+            currentIndex = (currentIndex + 1) % allLevels.size();
+            currentState = GameState.EXPLORING;
+        }
     }
 
     private static void handleMinigameClick(int x, int y) {
         Level current = allLevels.get(currentIndex);
-        
-        if (current.checkClick(x, y)) {
+        BufferedImage rawImg = library.getImage(current.getImageFileName());
+        if (rawImg == null) return;
+
+        // Check if the user clicked one of the trash hitboxes
+        if (current.checkClick(x, y, gamePanel.getWidth(), gamePanel.getHeight(), rawImg)) {
             score += 100;
-            scoreLabel.setText("Score: " + score + " | Energy: 100");
-            JOptionPane.showMessageDialog(frame, "Trash Collected! Turtle Recharged.");
+            gamePanel.rechargeTurtle(40); // Restore energy
             
-            // Prepare for the next time they run out of energy
+            // Sync UI Label
+            scoreLabel.setText("Score: " + score + " | Energy: " + gamePanel.getTurtleEnergy());
+            
+            // Move to next level and return to swimming
             currentIndex = (currentIndex + 1) % allLevels.size();
-            
-            // Switch back to swimming
             currentState = GameState.EXPLORING;
-            gamePanel.exitMinigame(); 
-            frame.setTitle("Marine Debris Guardian - Exploring");
+            gamePanel.exitMinigame();
         } else {
             missCount++;
+            // If they miss 3 times, show them where the trash is
             if (missCount >= 3) {
-                // Match the method name in your GamePanel
                 gamePanel.triggerScanner();
             }
         }
