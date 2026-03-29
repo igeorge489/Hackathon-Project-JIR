@@ -16,6 +16,8 @@ public class GamePanel extends JPanel implements ActionListener {
     private Timer timer;
     private ArrayList<Rectangle> trashList;
     private Random random = new Random();
+    private Rectangle fish; // The fish to eat
+    private int fishSpawnTimer = 0;
 
     // --- NEW: Minigame State Variables ---
     private boolean isMinigameActive = false;
@@ -43,10 +45,21 @@ public class GamePanel extends JPanel implements ActionListener {
             }
         });
 
+        this.currentLevel = new Level("ocean.png", new ArrayList<>());
+        this.fish = null; // Fish starts off-screen
+        
         timer = new Timer(1000 / 60, this);
         timer.start();
     }
 
+    private void spawnFish() {
+        int spawnX = worldX + 800;
+        int spawnY = 200; // Fixed Y for testing
+        fish = new Rectangle(spawnX, spawnY, 30, 20);
+        System.out.println("Fish spawned at WorldX: " + spawnX + " | Turtle is at ScreenX: " + TURTLE_X);
+    }
+    
+    
     // --- NEW: Methods for Main.java to call ---
     
     public void enterMinigame(BufferedImage img, Level level) {
@@ -81,6 +94,8 @@ public class GamePanel extends JPanel implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
+
+    	
         // 1. Check if we should trigger the minigame transition
         if (turtle.getEnergy() <= 0 && !isMinigameActive) {
             Main.startMinigame(); // Signal to Main to swap modes
@@ -90,6 +105,17 @@ public class GamePanel extends JPanel implements ActionListener {
         // 2. Normal Swimming Logic (only runs if minigame is OFF)
         if (!isGameOver && !isMinigameActive) {
             worldX += SCROLL_SPEED;
+            
+            fishSpawnTimer++; 
+            if (fish == null && fishSpawnTimer > 300) { 
+                spawnFish();      // <--- Call happens here
+                fishSpawnTimer = 0; // Reset the clock
+            }
+            
+        	if (fish != null && (fish.x - worldX) < -100) {
+        	    fish = null; // This "frees up" the slot for a new fish to spawn
+        	}
+        	
             checkCollisions();
             
             for (Rectangle t : trashList) {
@@ -104,10 +130,26 @@ public class GamePanel extends JPanel implements ActionListener {
 
     private void checkCollisions() {
         Rectangle turtleRect = new Rectangle(TURTLE_X, turtle.getY(), 50, 30);
+        
+        // 1. Trash Collision (Death)
         for (Rectangle t : trashList) {
             if (turtleRect.intersects(new Rectangle(t.x - worldX, t.y, t.width, t.height))) {
                 isGameOver = true;
                 timer.stop();
+            }
+        }
+
+        // 2. Fish Collision (Level Up & Disappear)
+        if (fish != null) {
+            Rectangle screenFish = new Rectangle(fish.x - worldX, fish.y, fish.width, fish.height);
+            if (turtleRect.intersects(screenFish)) {
+                currentLevel.incrementLevel(); // Increase the level number
+                fish = null;                   // Make the fish disappear
+                
+                // Optional: Give a small energy boost for eating
+                // turtle.addEnergy(20); 
+                
+                System.out.println("Level Up! Current Level: " + currentLevel.getLevelNumber());
             }
         }
     }
@@ -133,12 +175,26 @@ public class GamePanel extends JPanel implements ActionListener {
                 }
             }
         } else {
-            // --- DRAW SWIMMING SCENE ---
+        	// 1. Draw Trash
             g2d.setColor(new Color(200, 200, 255, 150));
             for (Rectangle t : trashList) {
                 g2d.fillRect(t.x - worldX, t.y, t.width, t.height);
             }
 
+            // 2. ADD THIS: Draw the Fish
+            if (fish != null) {
+                g2d.setColor(Color.ORANGE);
+                // Remember to subtract worldX so it moves with the camera!
+                int fishScreenX = fish.x - worldX;
+                g2d.fillOval(fishScreenX, fish.y, fish.width, fish.height);
+                
+                // Optional: Small tail to make it look like a fish
+                int[] xPoints = {fishScreenX, fishScreenX - 10, fishScreenX - 10};
+                int[] yPoints = {fish.y + 10, fish.y, fish.y + 20};
+                g2d.fillPolygon(xPoints, yPoints, 3);
+            }
+
+            // 3. Draw Turtle
             g2d.setColor(turtle.getColor());
             g2d.fillOval(TURTLE_X, turtle.getY(), 50, 30);
 
